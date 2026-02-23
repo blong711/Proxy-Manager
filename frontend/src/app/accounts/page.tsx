@@ -1,0 +1,182 @@
+"use client";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, MoreHorizontal, Trash2, Edit } from "lucide-react";
+import { toast } from "sonner";
+
+type AccountStatus = "active" | "inactive" | "banned";
+interface Account {
+    id: string; username: string; password: string; platform: string;
+    note?: string; status: AccountStatus; proxy_id?: string; created_at: string;
+}
+
+const statusCfg: Record<AccountStatus, string> = {
+    active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    inactive: "bg-slate-700 text-slate-400 border-slate-600",
+    banned: "bg-red-500/15 text-red-400 border-red-500/30",
+};
+
+const fetchAccounts = async () => {
+    const { data } = await api.get("/api/accounts?limit=200");
+    return data;
+};
+
+function AddAccountDialog({ onSuccess }: { onSuccess: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [form, setForm] = useState({ username: "", password: "", platform: "Facebook", note: "", status: "active" });
+    const f = (k: keyof typeof form) => ({ value: form[k], onChange: (e: any) => setForm(p => ({ ...p, [k]: e.target.value })) });
+
+    const mutation = useMutation({
+        mutationFn: (body: object) => api.post("/api/accounts", body),
+        onSuccess: () => { toast.success("Account added!"); setOpen(false); onSuccess(); },
+        onError: () => toast.error("Failed to add account"),
+    });
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm" className="bg-violet-600 hover:bg-violet-700">
+                    <Plus className="w-4 h-4 mr-1" /> Add Account
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-[#0d1426] border-white/10 text-slate-100">
+                <DialogHeader><DialogTitle>Add Account</DialogTitle></DialogHeader>
+                <form onSubmit={e => { e.preventDefault(); mutation.mutate(form); }} className="space-y-4 mt-2">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><Label className="text-xs text-slate-300">Username *</Label>
+                            <Input className="mt-1 bg-white/5 border-white/10" required {...f("username")} /></div>
+                        <div><Label className="text-xs text-slate-300">Password *</Label>
+                            <Input className="mt-1 bg-white/5 border-white/10" required {...f("password")} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><Label className="text-xs text-slate-300">Platform</Label>
+                            <Select value={form.platform} onValueChange={v => setForm(p => ({ ...p, platform: v }))}>
+                                <SelectTrigger className="mt-1 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-[#0d1426] border-white/10">
+                                    {["Facebook", "Instagram", "TikTok", "Twitter", "Other"].map(pl => (
+                                        <SelectItem key={pl} value={pl}>{pl}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div><Label className="text-xs text-slate-300">Status</Label>
+                            <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>
+                                <SelectTrigger className="mt-1 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-[#0d1426] border-white/10">
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="inactive">Inactive</SelectItem>
+                                    <SelectItem value="banned">Banned</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <div><Label className="text-xs text-slate-300">Note</Label>
+                        <Input className="mt-1 bg-white/5 border-white/10" placeholder="Optional..." {...f("note")} /></div>
+                    <div className="flex justify-end gap-2">
+                        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+                        <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={mutation.isPending}>
+                            {mutation.isPending ? "Adding..." : "Add Account"}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+export default function AccountsPage() {
+    const qc = useQueryClient();
+    const { data, isLoading } = useQuery({ queryKey: ["accounts"], queryFn: fetchAccounts });
+    const invalidate = () => qc.invalidateQueries({ queryKey: ["accounts"] });
+
+    const deleteAcc = useMutation({
+        mutationFn: (id: string) => api.delete(`/api/accounts/${id}`),
+        onSuccess: () => { toast.success("Account deleted"); invalidate(); },
+        onError: () => toast.error("Delete failed"),
+    });
+
+    const accounts: Account[] = data?.data ?? [];
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Accounts</h1>
+                    <p className="text-slate-400 text-sm mt-0.5">{accounts.length} total accounts</p>
+                </div>
+                <AddAccountDialog onSuccess={invalidate} />
+            </div>
+
+            <div className="rounded-xl border border-white/5 bg-[#0d1426] overflow-hidden">
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-48">
+                        <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                ) : accounts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-slate-500 text-sm">
+                        No accounts yet. Add your first one!
+                    </div>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="border-white/5 hover:bg-transparent">
+                                <TableHead className="text-slate-400 text-xs">Username</TableHead>
+                                <TableHead className="text-slate-400 text-xs">Platform</TableHead>
+                                <TableHead className="text-slate-400 text-xs">Status</TableHead>
+                                <TableHead className="text-slate-400 text-xs">Proxy</TableHead>
+                                <TableHead className="text-slate-400 text-xs">Note</TableHead>
+                                <TableHead className="text-slate-400 text-xs">Created</TableHead>
+                                <TableHead />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {accounts.map((acc) => (
+                                <TableRow key={acc.id} className="border-white/5 hover:bg-white/3 transition-colors">
+                                    <TableCell className="font-medium text-slate-200">{acc.username}</TableCell>
+                                    <TableCell>
+                                        <span className="text-xs bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+                                            {acc.platform}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={`text-xs border px-2 py-0.5 rounded-full font-semibold capitalize ${statusCfg[acc.status]}`}>
+                                            {acc.status}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-slate-500 font-mono">{acc.proxy_id ?? "—"}</TableCell>
+                                    <TableCell className="text-xs text-slate-400">{acc.note ?? "—"}</TableCell>
+                                    <TableCell className="text-xs text-slate-400">
+                                        {new Date(acc.created_at).toLocaleDateString()}
+                                    </TableCell>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-white">
+                                                    <MoreHorizontal className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent className="bg-[#0d1426] border-white/10" align="end">
+                                                <DropdownMenuItem className="text-red-400 hover:text-red-300 cursor-pointer"
+                                                    onClick={() => deleteAcc.mutate(acc.id)}>
+                                                    <Trash2 className="w-3 h-3 mr-2" /> Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </div>
+        </div>
+    );
+}
