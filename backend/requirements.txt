@@ -1,0 +1,10 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+beanie>=1.26.0
+motor>=3.6.0
+httpx[socks]>=0.28.0
+python-dotenv>=1.0.0
+apscheduler>=3.10.4
+pydantic[email]>=2.9.0
+pydantic-settings>=2.5.0
+python-multipart>=0.0.12
