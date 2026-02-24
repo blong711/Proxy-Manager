@@ -152,10 +152,6 @@ export default function LoginPage() {
                                     placeholder="Nhập lại mật khẩu..." required
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200" />
                             </div>
-                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20">
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 uppercase tracking-wider">User</span>
-                                <span className="text-xs text-slate-400">Tài khoản mới mặc định là <span className="text-sky-400 font-medium">User</span></span>
-                            </div>
                             {regError && <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">{regError}</div>}
                             {regSuccess && (
                                 <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-emerald-400">
