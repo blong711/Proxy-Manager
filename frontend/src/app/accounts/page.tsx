@@ -263,7 +263,7 @@ export default function AccountsPage() {
                         </TableHeader>
                         <TableBody>
                             {accounts.map((acc) => (
-                                <TableRow key={acc.id} className="border-white/5 hover:bg-white/3 transition-colors">
+                                <TableRow key={acc._id || acc.id} className="border-white/5 hover:bg-white/3 transition-colors">
                                     <TableCell className="font-medium text-slate-200">{acc.username}</TableCell>
                                     <TableCell>
                                         <span className="text-xs bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full">
@@ -295,7 +295,7 @@ export default function AccountsPage() {
                                                     <Edit className="w-3 h-3 mr-2" /> Edit
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem className="text-red-400 hover:text-red-300 cursor-pointer"
-                                                    onClick={() => deleteAcc.mutate(acc.id)}>
+                                                    onClick={() => deleteAcc.mutate((acc._id || acc.id) as string)}>
                                                     <Trash2 className="w-3 h-3 mr-2" /> Delete
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>

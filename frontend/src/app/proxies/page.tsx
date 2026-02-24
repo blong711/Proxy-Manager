@@ -27,8 +27,9 @@ import { toast } from "sonner";
 
 type ProxyStatus = "live" | "die" | "timeout" | "auth_failed" | "unchecked";
 interface Proxy {
-    id: string; ip: string; port: number;
+    id: string; _id?: string; ip: string; port: number;
     username?: string; password?: string;
+
     protocol: string; provider_name?: string;
     expire_at?: string; cost?: number;
     status: ProxyStatus; last_check?: string; latency?: number; note?: string;
