@@ -1,15 +1,16 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Query, Depends
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
-from beanie.operators import In
 from app.models.proxy import Proxy, ProxyProtocol, ProxyStatus
+from app.models.user import User, UserRole
+from app.routers.auth import get_current_user
 from app.services.proxy_checker import check_and_update_proxy, check_all_proxies
 
 router = APIRouter()
 
 
-# ── Schemas ────────────────────────────────────────────────────────────────────
+# ── Schemas ──────────────────────────────────────────────────────────────────
 
 class ProxyCreate(BaseModel):
     ip: str
@@ -43,13 +44,10 @@ class ImportBody(BaseModel):
 
 
 def parse_proxy_line(line: str, protocol: ProxyProtocol, provider_name: Optional[str], cost: Optional[float]) -> Optional[Proxy]:
-    """Parse lines like: ip:port, ip:port:user:pass, user:pass@ip:port"""
     line = line.strip()
     if not line or line.startswith("#"):
         return None
-
     try:
-        # Format: user:pass@ip:port
         if "@" in line:
             auth, host = line.rsplit("@", 1)
             username, password = auth.split(":", 1)
@@ -63,7 +61,6 @@ def parse_proxy_line(line: str, protocol: ProxyProtocol, provider_name: Optional
                 ip, port_str, username, password = parts
             else:
                 return None
-
         return Proxy(
             ip=ip.strip(),
             port=int(port_str.strip()),
@@ -77,7 +74,23 @@ def parse_proxy_line(line: str, protocol: ProxyProtocol, provider_name: Optional
         return None
 
 
-# ── Endpoints ──────────────────────────────────────────────────────────────────
+def _owner_filter(current_user: User) -> dict:
+    """Return a filter dict: empty for admin (see all), or owner filter for user."""
+    if current_user.role == UserRole.ADMIN:
+        return {}
+    return {"owner": current_user.username}
+
+
+async def _get_proxy_owned(proxy_id: str, current_user: User) -> Proxy:
+    proxy = await Proxy.get(proxy_id)
+    if not proxy:
+        raise HTTPException(status_code=404, detail="Proxy not found")
+    if current_user.role != UserRole.ADMIN and proxy.owner != current_user.username:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return proxy
+
+
+# ── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.get("")
 async def list_proxies(
@@ -85,8 +98,9 @@ async def list_proxies(
     provider_name: Optional[str] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    current_user: User = Depends(get_current_user),
 ):
-    query = {}
+    query = _owner_filter(current_user)
     if status:
         query["status"] = status
     if provider_name:
@@ -98,14 +112,20 @@ async def list_proxies(
 
 
 @router.post("", status_code=201)
-async def create_proxy(body: ProxyCreate):
-    proxy = Proxy(**body.model_dump())
+async def create_proxy(
+    body: ProxyCreate,
+    current_user: User = Depends(get_current_user),
+):
+    proxy = Proxy(**body.model_dump(), owner=current_user.username)
     await proxy.insert()
     return proxy
 
 
 @router.post("/import")
-async def import_proxies(body: ImportBody):
+async def import_proxies(
+    body: ImportBody,
+    current_user: User = Depends(get_current_user),
+):
     lines = body.text.strip().splitlines()
     created = []
     failed_lines = 0
@@ -113,60 +133,63 @@ async def import_proxies(body: ImportBody):
     for line in lines:
         proxy = parse_proxy_line(line, body.protocol, body.provider_name, body.cost)
         if proxy:
+            proxy.owner = current_user.username
             await proxy.insert()
             created.append(proxy)
         else:
             failed_lines += 1
 
-    return {
-        "imported": len(created),
-        "failed": failed_lines,
-        "proxies": created,
-    }
+    return {"imported": len(created), "failed": failed_lines, "proxies": created}
 
 
 @router.get("/{proxy_id}")
-async def get_proxy(proxy_id: str):
-    proxy = await Proxy.get(proxy_id)
-    if not proxy:
-        raise HTTPException(status_code=404, detail="Proxy not found")
-    return proxy
+async def get_proxy(
+    proxy_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    return await _get_proxy_owned(proxy_id, current_user)
 
 
 @router.put("/{proxy_id}")
-async def update_proxy(proxy_id: str, body: ProxyUpdate):
-    proxy = await Proxy.get(proxy_id)
-    if not proxy:
-        raise HTTPException(status_code=404, detail="Proxy not found")
-
-    update_data = body.model_dump(exclude_none=True)
-    for key, value in update_data.items():
+async def update_proxy(
+    proxy_id: str,
+    body: ProxyUpdate,
+    current_user: User = Depends(get_current_user),
+):
+    proxy = await _get_proxy_owned(proxy_id, current_user)
+    for key, value in body.model_dump(exclude_none=True).items():
         setattr(proxy, key, value)
     await proxy.save()
     return proxy
 
 
 @router.delete("/{proxy_id}")
-async def delete_proxy(proxy_id: str):
-    proxy = await Proxy.get(proxy_id)
-    if not proxy:
-        raise HTTPException(status_code=404, detail="Proxy not found")
+async def delete_proxy(
+    proxy_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    proxy = await _get_proxy_owned(proxy_id, current_user)
     await proxy.delete()
     return {"message": "Proxy deleted"}
 
 
 @router.post("/{proxy_id}/check")
-async def check_proxy(proxy_id: str):
-    proxy = await Proxy.get(proxy_id)
-    if not proxy:
-        raise HTTPException(status_code=404, detail="Proxy not found")
+async def check_proxy(
+    proxy_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    proxy = await _get_proxy_owned(proxy_id, current_user)
     updated = await check_and_update_proxy(proxy)
     return updated
 
 
 @router.post("/check-all/run")
-async def check_all(background_tasks: BackgroundTasks):
-    proxies = await Proxy.find_all().to_list()
+async def check_all(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
+    query = _owner_filter(current_user)
+    proxies = await Proxy.find(query).to_list()
 
     async def run_check():
         await check_all_proxies(proxies)

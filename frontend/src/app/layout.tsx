@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { Sidebar } from "@/components/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import AppShell from "@/components/app-shell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,13 +18,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.className} bg-[#0a0f1e] text-slate-100 antialiased`}>
         <Providers>
-          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto p-6 lg:p-8">{children}</main>
-          </div>
+          <AppShell>{children}</AppShell>
           <Toaster richColors position="top-right" />
         </Providers>
       </body>

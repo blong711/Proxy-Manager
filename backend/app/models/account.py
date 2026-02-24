@@ -18,6 +18,7 @@ class Account(Document):
     note: Optional[str] = None
     status: AccountStatus = AccountStatus.ACTIVE
     proxy_id: Optional[PydanticObjectId] = None
+    owner: str = ""  # username of the creator
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

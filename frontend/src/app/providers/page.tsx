@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Plus, MoreHorizontal, Trash2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
-interface Provider { _id?: string; id?: string; name: string; api_url?: string; api_key?: string; created_at: string; }
+interface Provider { id: string; name: string; api_url?: string; api_key?: string; created_at: string; }
 
 const fetchProviders = async () => { const { data } = await api.get("/api/providers"); return data; };
 
@@ -95,7 +95,7 @@ export default function ProvidersPage() {
                         </TableHeader>
                         <TableBody>
                             {providers.map((p: Provider) => (
-                                <TableRow key={p._id || p.id} className="border-white/5 hover:bg-white/3">
+                                <TableRow key={p.id} className="border-white/5 hover:bg-white/3">
                                     <TableCell className="font-medium text-slate-200">{p.name}</TableCell>
                                     <TableCell className="text-xs text-slate-400 font-mono">{p.api_url ?? "—"}</TableCell>
                                     <TableCell className="text-xs text-slate-500">{p.api_key ? "••••••••" : "—"}</TableCell>
@@ -108,7 +108,7 @@ export default function ProvidersPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent className="bg-[#0d1426] border-white/10" align="end">
-                                                <DropdownMenuItem className="text-red-400 hover:text-red-300 cursor-pointer" onClick={() => deleteProv.mutate(p._id || p.id || '')}>
+                                                <DropdownMenuItem className="text-red-400 hover:text-red-300 cursor-pointer" onClick={() => deleteProv.mutate(p.id)}>
                                                     <Trash2 className="w-3 h-3 mr-2" /> Delete
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>

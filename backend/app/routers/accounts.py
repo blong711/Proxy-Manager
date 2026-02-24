@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import Optional
 from app.models.account import Account, AccountStatus
+from app.models.user import User, UserRole
+from app.routers.auth import get_current_user
 
 router = APIRouter()
 
 
-# ── Schemas ────────────────────────────────────────────────────────────────────
+# ── Schemas ──────────────────────────────────────────────────────────────────
 
 class AccountCreate(BaseModel):
     username: str
@@ -26,7 +28,23 @@ class AccountUpdate(BaseModel):
     proxy_id: Optional[str] = None
 
 
-# ── Endpoints ──────────────────────────────────────────────────────────────────
+def _owner_filter(current_user: User) -> dict:
+    """Admin sees all; user sees only their own."""
+    if current_user.role == UserRole.ADMIN:
+        return {}
+    return {"owner": current_user.username}
+
+
+async def _get_account_owned(account_id: str, current_user: User) -> Account:
+    account = await Account.get(account_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if current_user.role != UserRole.ADMIN and account.owner != current_user.username:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return account
+
+
+# ── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.get("")
 async def list_accounts(
@@ -34,8 +52,9 @@ async def list_accounts(
     status: Optional[AccountStatus] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    current_user: User = Depends(get_current_user),
 ):
-    query = {}
+    query = _owner_filter(current_user)
     if platform:
         query["platform"] = platform
     if status:
@@ -47,37 +66,41 @@ async def list_accounts(
 
 
 @router.post("", status_code=201)
-async def create_account(body: AccountCreate):
-    account = Account(**body.model_dump())
+async def create_account(
+    body: AccountCreate,
+    current_user: User = Depends(get_current_user),
+):
+    account = Account(**body.model_dump(), owner=current_user.username)
     await account.insert()
     return account
 
 
 @router.get("/{account_id}")
-async def get_account(account_id: str):
-    account = await Account.get(account_id)
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
-    return account
+async def get_account(
+    account_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    return await _get_account_owned(account_id, current_user)
 
 
 @router.put("/{account_id}")
-async def update_account(account_id: str, body: AccountUpdate):
-    account = await Account.get(account_id)
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
-
-    update_data = body.model_dump(exclude_none=True)
-    for key, value in update_data.items():
+async def update_account(
+    account_id: str,
+    body: AccountUpdate,
+    current_user: User = Depends(get_current_user),
+):
+    account = await _get_account_owned(account_id, current_user)
+    for key, value in body.model_dump(exclude_none=True).items():
         setattr(account, key, value)
     await account.save()
     return account
 
 
 @router.delete("/{account_id}")
-async def delete_account(account_id: str):
-    account = await Account.get(account_id)
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
+async def delete_account(
+    account_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    account = await _get_account_owned(account_id, current_user)
     await account.delete()
     return {"message": "Account deleted"}

@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 type AccountStatus = "active" | "inactive" | "banned";
 interface Account {
-    _id?: string; id?: string; username: string; password: string; platform: string;
+    id: string; username: string; password: string; platform: string;
     note?: string; status: AccountStatus; proxy_id?: string; created_at: string;
 }
 
@@ -40,7 +40,11 @@ const fetchProxies = async () => {
 
 function AddAccountDialog({ onSuccess, proxies }: { onSuccess: () => void, proxies: Proxy[] }) {
     const [open, setOpen] = useState(false);
+<<<<<<< HEAD
     const [form, setForm] = useState({ username: "", password: "", platform: "TikTok", note: "", status: "active", proxy_id: "none" });
+=======
+    const [form, setForm] = useState({ username: "", password: "", platform: "Facebook", note: "", status: "active" });
+>>>>>>> 3a4c2a32134c3996a64f503eec18147e34400945
     const f = (k: keyof typeof form) => ({ value: form[k], onChange: (e: any) => setForm(p => ({ ...p, [k]: e.target.value })) });
 
     const mutation = useMutation({
@@ -74,7 +78,7 @@ function AddAccountDialog({ onSuccess, proxies }: { onSuccess: () => void, proxi
                             <Select value={form.platform} onValueChange={v => setForm(p => ({ ...p, platform: v }))}>
                                 <SelectTrigger className="mt-1 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
                                 <SelectContent className="bg-[#0d1426] border-white/10">
-                                    {["TikTok", "Amazon", "eBay", "Etsy", "Other"].map(pl => (
+                                    {["Facebook", "Instagram", "TikTok", "Twitter", "Other"].map(pl => (
                                         <SelectItem key={pl} value={pl}>{pl}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -263,7 +267,7 @@ export default function AccountsPage() {
                         </TableHeader>
                         <TableBody>
                             {accounts.map((acc) => (
-                                <TableRow key={acc._id || acc.id} className="border-white/5 hover:bg-white/3 transition-colors">
+                                <TableRow key={acc.id} className="border-white/5 hover:bg-white/3 transition-colors">
                                     <TableCell className="font-medium text-slate-200">{acc.username}</TableCell>
                                     <TableCell>
                                         <span className="text-xs bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full">
@@ -295,7 +299,7 @@ export default function AccountsPage() {
                                                     <Edit className="w-3 h-3 mr-2" /> Edit
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem className="text-red-400 hover:text-red-300 cursor-pointer"
-                                                    onClick={() => deleteAcc.mutate(acc._id || acc.id || '')}>
+                                                    onClick={() => deleteAcc.mutate(acc.id)}>
                                                     <Trash2 className="w-3 h-3 mr-2" /> Delete
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>

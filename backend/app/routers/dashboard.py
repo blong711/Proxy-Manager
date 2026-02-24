@@ -1,19 +1,26 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from datetime import datetime, timezone, timedelta
 from app.models.proxy import Proxy, ProxyStatus
 from app.models.account import Account
+from app.models.user import User, UserRole
+from app.routers.auth import get_current_user
 
 router = APIRouter()
 
 
 @router.get("")
-async def get_dashboard():
-    """Return aggregated stats for the dashboard."""
+async def get_dashboard(current_user: User = Depends(get_current_user)):
+    """Return aggregated stats for the dashboard, scoped by role."""
     now = datetime.now(timezone.utc)
     expiry_threshold = now + timedelta(days=3)
 
-    all_proxies = await Proxy.find_all().to_list()
-    all_accounts = await Account.find_all().to_list()
+    # Admin sees all; user sees only their own data
+    if current_user.role == UserRole.ADMIN:
+        all_proxies = await Proxy.find_all().to_list()
+        all_accounts = await Account.find_all().to_list()
+    else:
+        all_proxies = await Proxy.find({"owner": current_user.username}).to_list()
+        all_accounts = await Account.find({"owner": current_user.username}).to_list()
 
     # Proxy counts by status
     status_counts = {s.value: 0 for s in ProxyStatus}
