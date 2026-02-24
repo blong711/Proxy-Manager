@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package info and install ALL dependencies (including devDependencies)
+COPY package.json package-lock.json* ./
+RUN npm install
+
+# Copy local code to the container
+COPY . .
+
+# Expose port 3000 for standard Next.js local server
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
