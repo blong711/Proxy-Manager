@@ -81,7 +81,7 @@ function AddAccountDialog({ onSuccess, proxies }: { onSuccess: () => void, proxi
                             </Select>
                         </div>
                         <div><Label className="text-xs text-slate-300">Status</Label>
-                            <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>
+                            <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v as AccountStatus }))}>
                                 <SelectTrigger className="mt-1 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
                                 <SelectContent className="bg-[#0d1426] border-white/10">
                                     <SelectItem value="active">Active</SelectItem>
@@ -165,7 +165,7 @@ function EditAccountDialog({ account, onClose, onSuccess, proxies }: { account: 
                             </Select>
                         </div>
                         <div><Label className="text-xs text-slate-300">Status</Label>
-                            <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>
+                            <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v as AccountStatus }))}>
                                 <SelectTrigger className="mt-1 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
                                 <SelectContent className="bg-[#0d1426] border-white/10">
                                     <SelectItem value="active">Active</SelectItem>
