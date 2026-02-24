@@ -157,7 +157,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Advantages over Google Sheets */}
-      <div className="rounded-xl p-6 border border-violet-500/20 bg-violet-500/5">
+      {/* <div className="rounded-xl p-6 border border-violet-500/20 bg-violet-500/5">
         <p className="text-sm font-semibold text-violet-300 mb-3">✨ Why this beats Google Sheets</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
@@ -169,7 +169,7 @@ export default function DashboardPage() {
             <div key={item} className="text-xs text-slate-300 bg-white/5 rounded-lg px-3 py-2">{item}</div>
           ))}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

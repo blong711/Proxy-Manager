@@ -58,7 +58,7 @@ export function Sidebar() {
             {/* Footer */}
             <div className="px-4 py-4 border-t border-white/5">
                 <p className="text-[11px] text-slate-600 text-center">
-                    Better than Google Sheets 🚀
+
                 </p>
             </div>
         </aside>

@@ -1,0 +1,23 @@
+services:
+  backend:
+    # Ghi đè command để bật chế độ reload (Hot-reload cho FastAPI)
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      # Ánh xạ thư mục app (code backend) vào container
+      - ./backend/app:/app/app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev # Chuyển sang dùng Dockerfile.dev
+    volumes:
+      # Ánh xạ toàn bộ thư mục frontend vào container để hot-reload
+      - ./frontend:/app
+      # Giữ lại node_modules và .next bên trong container, tránh bị ghi đè bởi thư mục local
+      - /app/node_modules
+      - /app/.next
+    environment:
+      # Chạy môi trường dev
+      - NODE_ENV=development
+      # Lên localhost để trình duyệt cục bộ có thể gọi được API
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
