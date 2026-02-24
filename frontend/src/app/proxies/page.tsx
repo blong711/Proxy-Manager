@@ -413,7 +413,6 @@ export default function ProxiesPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-<<<<<<< HEAD
                             {filtered.map((proxy) => {
                                 const pId = proxy._id || proxy.id as string;
                                 return (
@@ -470,57 +469,6 @@ export default function ProxiesPage() {
                                     </TableRow>
                                 );
                             })}
-=======
-                            {filtered.map((proxy) => (
-                                <TableRow key={proxy.id} className="border-white/5 hover:bg-white/3 transition-colors">
-                                    <TableCell className="font-mono text-xs text-slate-200">
-                                        {proxy.ip}:{proxy.port}
-                                        {proxy.username && <span className="text-slate-500 ml-1">({proxy.username})</span>}
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="text-xs uppercase bg-white/5 px-2 py-0.5 rounded text-slate-300">{proxy.protocol}</span>
-                                    </TableCell>
-                                    <TableCell className="text-xs text-slate-400">{proxy.provider_name ?? "—"}</TableCell>
-                                    <TableCell><StatusBadge status={proxy.status} /></TableCell>
-                                    <TableCell className="text-xs text-slate-400">
-                                        {proxy.latency != null ? <span className={proxy.latency < 500 ? "text-emerald-400" : "text-amber-400"}>{proxy.latency}ms</span> : "—"}
-                                    </TableCell>
-                                    <TableCell className="text-xs text-slate-400">
-                                        {proxy.cost ? `${proxy.cost.toLocaleString()} đ` : "—"}
-                                    </TableCell>
-                                    <TableCell className="text-xs text-slate-400">
-                                        {proxy.expire_at ? (
-                                            <span className={new Date(proxy.expire_at) < new Date(Date.now() + 3 * 86400000) ? "text-amber-400" : ""}>
-                                                {new Date(proxy.expire_at).toLocaleDateString()}
-                                            </span>
-                                        ) : "—"}
-                                    </TableCell>
-                                    <TableCell className="text-xs text-slate-400">
-                                        {proxy.last_check ? new Date(proxy.last_check).toLocaleString() : "Never"}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-white">
-                                                    <MoreHorizontal className="w-4 h-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="bg-[#0d1426] border-white/10" align="end">
-                                                <DropdownMenuItem className="text-slate-300 hover:text-white cursor-pointer"
-                                                    onClick={() => checkOne(proxy.id)} disabled={checkingId === proxy.id}>
-                                                    <RefreshCw className={`w-3 h-3 mr-2 ${checkingId === proxy.id ? "animate-spin" : ""}`} />
-                                                    {checkingId === proxy.id ? "Checking..." : "Check Now"}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-400 hover:text-red-300 cursor-pointer"
-                                                    onClick={() => deleteProxy.mutate(proxy.id)}>
-                                                    <Trash2 className="w-3 h-3 mr-2" /> Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
->>>>>>> 3a4c2a32134c3996a64f503eec18147e34400945
                         </TableBody>
                     </Table>
                 )}

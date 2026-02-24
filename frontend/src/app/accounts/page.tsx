@@ -40,11 +40,7 @@ const fetchProxies = async () => {
 
 function AddAccountDialog({ onSuccess, proxies }: { onSuccess: () => void, proxies: Proxy[] }) {
     const [open, setOpen] = useState(false);
-<<<<<<< HEAD
     const [form, setForm] = useState({ username: "", password: "", platform: "TikTok", note: "", status: "active", proxy_id: "none" });
-=======
-    const [form, setForm] = useState({ username: "", password: "", platform: "Facebook", note: "", status: "active" });
->>>>>>> 3a4c2a32134c3996a64f503eec18147e34400945
     const f = (k: keyof typeof form) => ({ value: form[k], onChange: (e: any) => setForm(p => ({ ...p, [k]: e.target.value })) });
 
     const mutation = useMutation({

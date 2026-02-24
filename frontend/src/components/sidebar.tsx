@@ -6,7 +6,7 @@ import {
     Globe,
     Users,
     Building2,
-    Shield, BookOpen
+    Shield, BookOpen, UserCircle, LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
