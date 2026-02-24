@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 type AccountStatus = "active" | "inactive" | "banned";
 interface Account {
-    id: string; username: string; password: string; platform: string;
+    id: string; _id?: string; username: string; password: string; platform: string;
     note?: string; status: AccountStatus; proxy_id?: string; created_at: string;
 }
 
