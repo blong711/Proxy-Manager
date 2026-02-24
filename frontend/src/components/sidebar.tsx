@@ -6,7 +6,7 @@ import {
     Globe,
     Users,
     Building2,
-    Shield,
+    Shield, BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ const navItems = [
     { href: "/proxies", label: "Proxies", icon: Globe },
     { href: "/accounts", label: "Accounts", icon: Users },
     { href: "/providers", label: "Providers", icon: Building2 },
+    { href: "/guide", label: "Guide & SOP", icon: BookOpen },
 ];
 
 export function Sidebar() {

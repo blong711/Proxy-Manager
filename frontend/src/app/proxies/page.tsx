@@ -19,7 +19,7 @@ import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    Plus, Upload, RefreshCw, MoreHorizontal, Trash2, Zap, ChevronDown,
+    Plus, Upload, RefreshCw, MoreHorizontal, Trash2, Zap, ChevronDown, Edit
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -150,6 +150,89 @@ function AddProxyDialog({ onSuccess }: { onSuccess: () => void }) {
     );
 }
 
+function EditProxyDialog({ proxy, onClose, onSuccess }: { proxy: Proxy | null; onClose: () => void; onSuccess: () => void; }) {
+    const [form, setForm] = useState({
+        ip: proxy?.ip || "", port: proxy?.port?.toString() || "", username: proxy?.username || "", password: proxy?.password || "",
+        protocol: proxy?.protocol || "http", provider_name: proxy?.provider_name || "", cost: proxy?.cost?.toString() || "", note: proxy?.note || "",
+        // Need to convert to datetime-local format format "YYYY-MM-DDThh:mm"
+        expire_at: proxy?.expire_at ? new Date(proxy.expire_at).toISOString().slice(0, 16) : "",
+    });
+
+    const mutation = useMutation({
+        mutationFn: (body: object) => api.put(`/api/proxies/${proxy?._id || proxy?.id}`, body),
+        onSuccess: () => { toast.success("Proxy updated!"); onSuccess(); },
+        onError: () => toast.error("Failed to update proxy"),
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        mutation.mutate({
+            ip: form.ip, port: parseInt(form.port) || 0,
+            username: form.username || undefined,
+            password: form.password || undefined,
+            protocol: form.protocol,
+            provider_name: form.provider_name || undefined,
+            cost: form.cost ? parseFloat(form.cost) : undefined,
+            note: form.note || undefined,
+            expire_at: form.expire_at ? new Date(form.expire_at).toISOString() : undefined,
+        });
+    };
+
+    const f = (k: keyof typeof form) => ({ value: form[k], onChange: (e: any) => setForm(p => ({ ...p, [k]: e.target.value })) });
+
+    return (
+        <Dialog open={!!proxy} onOpenChange={(o) => { if (!o) onClose(); }}>
+            <DialogContent className="bg-[#0d1426] border-white/10 text-slate-100 max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Edit Proxy</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><Label className="text-slate-300 text-xs">IP Address *</Label>
+                            <Input className="mt-1 bg-white/5 border-white/10" placeholder="192.168.1.1" required {...f("ip")} /></div>
+                        <div><Label className="text-slate-300 text-xs">Port *</Label>
+                            <Input className="mt-1 bg-white/5 border-white/10" type="number" placeholder="8080" required {...f("port")} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><Label className="text-slate-300 text-xs">Username</Label>
+                            <Input className="mt-1 bg-white/5 border-white/10" placeholder="user" {...f("username")} /></div>
+                        <div><Label className="text-slate-300 text-xs">Password</Label>
+                            <Input className="mt-1 bg-white/5 border-white/10" placeholder="pass" {...f("password")} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><Label className="text-slate-300 text-xs">Protocol</Label>
+                            <Select value={form.protocol} onValueChange={v => setForm(p => ({ ...p, protocol: v }))}>
+                                <SelectTrigger className="mt-1 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-[#0d1426] border-white/10">
+                                    <SelectItem value="http">HTTP</SelectItem>
+                                    <SelectItem value="https">HTTPS</SelectItem>
+                                    <SelectItem value="socks5">SOCKS5</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div><Label className="text-slate-300 text-xs">Provider</Label>
+                            <Input className="mt-1 bg-white/5 border-white/10" placeholder="Tinsoft..." {...f("provider_name")} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><Label className="text-slate-300 text-xs">Cost (đ/month)</Label>
+                            <Input className="mt-1 bg-white/5 border-white/10" type="number" placeholder="50000" {...f("cost")} /></div>
+                        <div><Label className="text-slate-300 text-xs">Expire Date</Label>
+                            <Input className="mt-1 bg-white/5 border-white/10" type="datetime-local" {...f("expire_at")} /></div>
+                    </div>
+                    <div><Label className="text-slate-300 text-xs">Note</Label>
+                        <Input className="mt-1 bg-white/5 border-white/10" placeholder="Optional note..." {...f("note")} /></div>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+                        <Button type="submit" className="bg-violet-600 hover:bg-violet-700" disabled={mutation.isPending}>
+                            {mutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 // ── Import Dialog ─────────────────────────────────────────────────────────────
 
 function ImportDialog({ onSuccess }: { onSuccess: () => void }) {
@@ -236,6 +319,7 @@ export default function ProxiesPage() {
     const [checkingAll, setCheckingAll] = useState(false);
     const [checkingId, setCheckingId] = useState<string | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [editingProxy, setEditingProxy] = useState<Proxy | null>(null);
 
     const invalidate = () => qc.invalidateQueries({ queryKey: ["proxies"] });
 
@@ -367,6 +451,10 @@ export default function ProxiesPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent className="bg-[#0d1426] border-white/10" align="end">
                                                     <DropdownMenuItem className="text-slate-300 hover:text-white cursor-pointer"
+                                                        onClick={() => setEditingProxy(proxy)}>
+                                                        <Edit className="w-3 h-3 mr-2" /> Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="text-slate-300 hover:text-white cursor-pointer"
                                                         onClick={() => checkOne(pId)} disabled={checkingId === pId}>
                                                         <RefreshCw className={`w-3 h-3 mr-2 ${checkingId === pId ? "animate-spin" : ""}`} />
                                                         {checkingId === pId ? "Checking..." : "Check Now"}
@@ -385,6 +473,12 @@ export default function ProxiesPage() {
                     </Table>
                 )}
             </div>
+
+            {editingProxy && (
+                <EditProxyDialog key={editingProxy._id || editingProxy.id} proxy={editingProxy}
+                    onClose={() => setEditingProxy(null)}
+                    onSuccess={() => { invalidate(); setEditingProxy(null); }} />
+            )}
         </div>
     );
 }
