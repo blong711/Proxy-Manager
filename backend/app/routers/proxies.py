@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Query, Depends
 from pydantic import BaseModel
 from typing import Optional
+import re
 from datetime import datetime, timezone
 from app.models.proxy import Proxy, ProxyProtocol, ProxyStatus
 from app.models.user import User, UserRole
@@ -41,6 +42,10 @@ class ImportBody(BaseModel):
     protocol: ProxyProtocol = ProxyProtocol.HTTP
     provider_name: Optional[str] = None
     cost: Optional[float] = None
+    auto_check: bool = True  # tự động check sau import
+
+
+_PROTO_RE = re.compile(r"^(https?|socks[45])://", re.IGNORECASE)
 
 
 def parse_proxy_line(line: str, protocol: ProxyProtocol, provider_name: Optional[str], cost: Optional[float]) -> Optional[Proxy]:
@@ -48,12 +53,15 @@ def parse_proxy_line(line: str, protocol: ProxyProtocol, provider_name: Optional
     if not line or line.startswith("#"):
         return None
     try:
-        if "@" in line:
-            auth, host = line.rsplit("@", 1)
+        # Bóc tách protocol prefix: http:// https:// socks4:// socks5://
+        cleaned = _PROTO_RE.sub("", line)
+
+        if "@" in cleaned:
+            auth, host = cleaned.rsplit("@", 1)
             username, password = auth.split(":", 1)
             ip, port_str = host.rsplit(":", 1)
         else:
-            parts = line.split(":")
+            parts = cleaned.split(":")
             if len(parts) == 2:
                 ip, port_str = parts
                 username, password = None, None
@@ -124,6 +132,7 @@ async def create_proxy(
 @router.post("/import")
 async def import_proxies(
     body: ImportBody,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ):
     lines = body.text.strip().splitlines()
@@ -139,7 +148,149 @@ async def import_proxies(
         else:
             failed_lines += 1
 
-    return {"imported": len(created), "failed": failed_lines, "proxies": created}
+    # Auto-check proxy vừa import trong background
+    if body.auto_check and created:
+        async def run_check():
+            await check_all_proxies(created)
+
+        background_tasks.add_task(run_check)
+
+    return {
+        "imported": len(created),
+        "failed": failed_lines,
+        "proxies": created,
+        "checking": body.auto_check and len(created) > 0,
+    }
+
+class CheckRawBody(BaseModel):
+    proxy_url: str  # format: protocol://ip:port hoặc ip:port
+
+
+class CheckBatchItem(BaseModel):
+    proxy_url: str
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+
+class CheckBatchBody(BaseModel):
+    proxies: list[CheckBatchItem]
+
+
+@router.post("/check-batch")
+async def check_batch_proxies(
+    body: CheckBatchBody,
+    current_user: User = Depends(get_current_user),
+):
+    """Check a batch of raw proxies (not saved to DB) — dùng cho preview."""
+    import asyncio
+    from app.services.proxy_checker import check_single_proxy, _get_real_ip
+
+    real_ip = await _get_real_ip()
+    semaphore = asyncio.Semaphore(30)
+
+    async def check_one(item: CheckBatchItem) -> dict:
+        async with semaphore:
+            proxy_url = item.proxy_url
+            # Parse proxy_url
+            cleaned = _PROTO_RE.sub("", proxy_url)
+            parts = cleaned.split(":")
+            if len(parts) != 2:
+                return {"proxy_url": proxy_url, "status": "die", "quality": "bad",
+                        "latency": None, "anonymity": None, "country": None}
+
+            ip, port_str = parts
+            try:
+                port = int(port_str)
+            except ValueError:
+                return {"proxy_url": proxy_url, "status": "die", "quality": "bad",
+                        "latency": None, "anonymity": None, "country": None}
+
+            # Detect protocol
+            proto_match = re.match(r"^(https?|socks[45])://", proxy_url, re.IGNORECASE)
+            protocol = ProxyProtocol.HTTP
+            if proto_match:
+                p = proto_match.group(1).lower()
+                protocol = {"http": ProxyProtocol.HTTP, "https": ProxyProtocol.HTTPS,
+                            "socks4": ProxyProtocol.SOCKS5, "socks5": ProxyProtocol.SOCKS5
+                            }.get(p, ProxyProtocol.HTTP)
+
+            temp_proxy = Proxy(
+                ip=ip.strip(), port=port, protocol=protocol,
+                username=item.username, password=item.password,
+                owner=current_user.username,
+            )
+            result = await check_single_proxy(temp_proxy, real_ip)
+
+            return {
+                "proxy_url": proxy_url,
+                "ip": ip.strip(),
+                "port": port,
+                "status": result["status"].value,
+                "quality": result["quality"].value,
+                "latency": result.get("latency"),
+                "anonymity": result["anonymity"].value if result.get("anonymity") else None,
+                "country": result.get("country"),
+            }
+
+    tasks = [check_one(item) for item in body.proxies]
+    raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    final_results = []
+    for i, r in enumerate(raw_results):
+        if isinstance(r, Exception):
+            final_results.append({
+                "proxy_url": body.proxies[i].proxy_url,
+                "status": "die", "quality": "bad",
+                "latency": None, "anonymity": None, "country": None,
+            })
+        else:
+            final_results.append(r)
+
+    return {"results": final_results}
+
+
+@router.post("/check-raw")
+async def check_raw_proxy(
+    body: CheckRawBody,
+    current_user: User = Depends(get_current_user),
+):
+    """Check 1 proxy chưa import — dùng cho preview."""
+    from app.services.proxy_checker import check_single_proxy, _get_real_ip
+
+    # Parse proxy_url
+    cleaned = _PROTO_RE.sub("", body.proxy_url)
+    parts = cleaned.split(":")
+    if len(parts) != 2:
+        raise HTTPException(400, "Invalid proxy format")
+
+    ip, port_str = parts
+    try:
+        port = int(port_str)
+    except ValueError:
+        raise HTTPException(400, "Invalid port")
+
+    # Detect protocol from URL
+    proto_match = re.match(r"^(https?|socks[45])://", body.proxy_url, re.IGNORECASE)
+    protocol = ProxyProtocol.HTTP
+    if proto_match:
+        p = proto_match.group(1).lower()
+        protocol = {"http": ProxyProtocol.HTTP, "https": ProxyProtocol.HTTPS,
+                     "socks4": ProxyProtocol.SOCKS5, "socks5": ProxyProtocol.SOCKS5}.get(p, ProxyProtocol.HTTP)
+
+    # Tạo proxy tạm (không lưu DB)
+    temp_proxy = Proxy(ip=ip, port=port, protocol=protocol, owner=current_user.username)
+    real_ip = await _get_real_ip()
+    result = await check_single_proxy(temp_proxy, real_ip)
+
+    return {
+        "ip": ip,
+        "port": port,
+        "status": result["status"].value,
+        "quality": result["quality"].value,
+        "latency": result.get("latency"),
+        "anonymity": result["anonymity"].value if result.get("anonymity") else None,
+        "country": result.get("country"),
+    }
 
 
 @router.get("/{proxy_id}")

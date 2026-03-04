@@ -19,6 +19,18 @@ class ProxyStatus(str, Enum):
     UNCHECKED = "unchecked"
 
 
+class ProxyQuality(str, Enum):
+    GOOD = "good"       # live + latency < 2000ms
+    BAD = "bad"         # die / timeout / slow > 5000ms
+    UNKNOWN = "unknown" # unchecked
+
+
+class ProxyAnonymity(str, Enum):
+    TRANSPARENT = "transparent"  # leaks real IP
+    ANONYMOUS = "anonymous"      # hides IP but detectable
+    ELITE = "elite"              # fully anonymous
+
+
 class Proxy(Document):
     ip: str
     port: int
@@ -29,8 +41,12 @@ class Proxy(Document):
     expire_at: Optional[datetime] = None
     cost: Optional[float] = None
     status: ProxyStatus = ProxyStatus.UNCHECKED
+    quality: ProxyQuality = ProxyQuality.UNKNOWN
     last_check: Optional[datetime] = None
     latency: Optional[float] = None  # milliseconds
+    check_count: int = 0
+    anonymity: Optional[ProxyAnonymity] = None
+    country: Optional[str] = None
     note: Optional[str] = None
     provider_id: Optional[PydanticObjectId] = None
     owner: str = ""  # username of the creator

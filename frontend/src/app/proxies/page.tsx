@@ -26,13 +26,17 @@ import { toast } from "sonner";
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type ProxyStatus = "live" | "die" | "timeout" | "auth_failed" | "unchecked";
+type ProxyQuality = "good" | "bad" | "unknown";
+type ProxyAnonymity = "transparent" | "anonymous" | "elite";
 interface Proxy {
     id: string; _id?: string; ip: string; port: number;
     username?: string; password?: string;
-
     protocol: string; provider_name?: string;
     expire_at?: string; cost?: number;
-    status: ProxyStatus; last_check?: string; latency?: number; note?: string;
+    status: ProxyStatus; quality?: ProxyQuality;
+    last_check?: string; latency?: number;
+    check_count?: number; anonymity?: ProxyAnonymity;
+    country?: string; note?: string;
 }
 
 // ── Status badge ─────────────────────────────────────────────────────────────
@@ -54,6 +58,28 @@ function StatusBadge({ status }: { status: ProxyStatus }) {
         </span>
     );
 }
+
+const qualityConfig: Record<ProxyQuality, { label: string; className: string }> = {
+    good: { label: "Good", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+    bad: { label: "Bad", className: "bg-red-500/15 text-red-400 border-red-500/30" },
+    unknown: { label: "—", className: "bg-slate-700 text-slate-500 border-slate-600" },
+};
+
+function QualityBadge({ quality }: { quality?: ProxyQuality }) {
+    const q = quality || "unknown";
+    const cfg = qualityConfig[q];
+    return (
+        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cfg.className}`}>
+            {cfg.label}
+        </span>
+    );
+}
+
+const anonymityConfig: Record<ProxyAnonymity, { label: string; className: string }> = {
+    elite: { label: "Elite", className: "text-violet-400" },
+    anonymous: { label: "Anonymous", className: "text-sky-400" },
+    transparent: { label: "Transparent", className: "text-amber-400" },
+};
 
 // ── API hooks ─────────────────────────────────────────────────────────────────
 
@@ -87,7 +113,7 @@ function AddProxyDialog({ onSuccess }: { onSuccess: () => void }) {
             provider_name: form.provider_name || undefined,
             cost: form.cost ? parseFloat(form.cost) : undefined,
             note: form.note || undefined,
-            expire_at: form.expire_at || undefined,
+            expire_at: form.expire_at ? new Date(form.expire_at).toISOString() : undefined,
         });
     };
 
@@ -134,7 +160,7 @@ function AddProxyDialog({ onSuccess }: { onSuccess: () => void }) {
                     <div className="grid grid-cols-2 gap-3">
                         <div><Label className="text-slate-300 text-xs">Cost (đ/month)</Label>
                             <Input className="mt-1 bg-white/5 border-white/10" type="number" placeholder="50000" {...f("cost")} /></div>
-                        <div><Label className="text-slate-300 text-xs">Expire Date</Label>
+                        <div><Label className="text-slate-300 text-xs">Expire Date(Optional)</Label>
                             <Input className="mt-1 bg-white/5 border-white/10" type="datetime-local" {...f("expire_at")} /></div>
                     </div>
                     <div><Label className="text-slate-300 text-xs">Note</Label>
@@ -316,7 +342,7 @@ function ImportDialog({ onSuccess }: { onSuccess: () => void }) {
 
 export default function ProxiesPage() {
     const qc = useQueryClient();
-    const { data, isLoading } = useQuery({ queryKey: ["proxies"], queryFn: fetchProxies, refetchInterval: 15000 });
+    const { data, isLoading } = useQuery({ queryKey: ["proxies"], queryFn: fetchProxies, refetchInterval: 5000 });
     const [checkingAll, setCheckingAll] = useState(false);
     const [checkingId, setCheckingId] = useState<string | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -357,6 +383,8 @@ export default function ProxiesPage() {
         live: proxies.filter(p => p.status === "live").length,
         die: proxies.filter(p => p.status === "die").length,
         unchecked: proxies.filter(p => p.status === "unchecked").length,
+        good: proxies.filter(p => p.quality === "good").length,
+        bad: proxies.filter(p => p.quality === "bad").length,
     };
 
     return (
@@ -365,7 +393,11 @@ export default function ProxiesPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-white">Proxies</h1>
-                    <p className="text-slate-400 text-sm mt-0.5">{stats.total} total · {stats.live} live · {stats.die} dead</p>
+                    <p className="text-slate-400 text-sm mt-0.5">
+                        {stats.total} total · {stats.live} live · {stats.die} dead
+                        {stats.good > 0 && <span className="text-emerald-400"> · {stats.good} good</span>}
+                        {stats.bad > 0 && <span className="text-red-400"> · {stats.bad} bad</span>}
+                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button size="sm" variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10"
@@ -404,11 +436,11 @@ export default function ProxiesPage() {
                             <TableRow className="border-white/5 hover:bg-transparent">
                                 <TableHead className="text-slate-400 text-xs">Proxy</TableHead>
                                 <TableHead className="text-slate-400 text-xs">Protocol</TableHead>
-                                <TableHead className="text-slate-400 text-xs">Provider</TableHead>
                                 <TableHead className="text-slate-400 text-xs">Status</TableHead>
+                                <TableHead className="text-slate-400 text-xs">Quality</TableHead>
                                 <TableHead className="text-slate-400 text-xs">Latency</TableHead>
-                                <TableHead className="text-slate-400 text-xs">Cost</TableHead>
-                                <TableHead className="text-slate-400 text-xs">Expires</TableHead>
+                                <TableHead className="text-slate-400 text-xs">Anonymity</TableHead>
+                                <TableHead className="text-slate-400 text-xs">Country</TableHead>
                                 <TableHead className="text-slate-400 text-xs">Last Check</TableHead>
                                 <TableHead />
                             </TableRow>
@@ -425,20 +457,20 @@ export default function ProxiesPage() {
                                         <TableCell>
                                             <span className="text-xs uppercase bg-white/5 px-2 py-0.5 rounded text-slate-300">{proxy.protocol}</span>
                                         </TableCell>
-                                        <TableCell className="text-xs text-slate-400">{proxy.provider_name ?? "—"}</TableCell>
                                         <TableCell><StatusBadge status={proxy.status} /></TableCell>
+                                        <TableCell><QualityBadge quality={proxy.quality} /></TableCell>
                                         <TableCell className="text-xs text-slate-400">
-                                            {proxy.latency != null ? <span className={proxy.latency < 500 ? "text-emerald-400" : "text-amber-400"}>{proxy.latency}ms</span> : "—"}
+                                            {proxy.latency != null ? <span className={proxy.latency < 500 ? "text-emerald-400" : proxy.latency < 2000 ? "text-amber-400" : "text-red-400"}>{proxy.latency}ms</span> : "—"}
                                         </TableCell>
-                                        <TableCell className="text-xs text-slate-400">
-                                            {proxy.cost ? `${proxy.cost.toLocaleString()} đ` : "—"}
-                                        </TableCell>
-                                        <TableCell className="text-xs text-slate-400">
-                                            {proxy.expire_at ? (
-                                                <span className={new Date(proxy.expire_at) < new Date(Date.now() + 3 * 86400000) ? "text-amber-400" : ""}>
-                                                    {new Date(proxy.expire_at).toLocaleDateString()}
+                                        <TableCell className="text-xs">
+                                            {proxy.anonymity ? (
+                                                <span className={anonymityConfig[proxy.anonymity]?.className || "text-slate-500"}>
+                                                    {anonymityConfig[proxy.anonymity]?.label || proxy.anonymity}
                                                 </span>
-                                            ) : "—"}
+                                            ) : <span className="text-slate-600">—</span>}
+                                        </TableCell>
+                                        <TableCell className="text-xs text-slate-400">
+                                            {proxy.country || "—"}
                                         </TableCell>
                                         <TableCell className="text-xs text-slate-400">
                                             {proxy.last_check ? new Date(proxy.last_check).toLocaleString() : "Never"}

@@ -4,8 +4,7 @@ import { usePathname } from "next/navigation";
 import {
     LayoutDashboard,
     Globe,
-    Users,
-    Building2,
+    FileUp,
     Shield,
     BookOpen,
     UserCircle,
@@ -17,8 +16,7 @@ import { useAuth } from "@/lib/auth";
 const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/proxies", label: "Proxies", icon: Globe },
-    { href: "/accounts", label: "Accounts", icon: Users },
-    { href: "/providers", label: "Providers", icon: Building2 },
+    { href: "/profiles", label: "Profiles", icon: FileUp },
     { href: "/guide", label: "Guide & SOP", icon: BookOpen },
 ];
 
