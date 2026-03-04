@@ -6,10 +6,10 @@ services:
     image: mongo:7.0
     container_name: proxy-mongo
     restart: unless-stopped
-    ports:
-      - "27017:27017"
+    # ports:
+    #   - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - ./data/mongo:/data/db
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -56,6 +56,3 @@ services:
       backend:
         condition: service_healthy
 
-volumes:
-  mongo_data:
-    driver: local

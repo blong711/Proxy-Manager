@@ -23,7 +23,7 @@ const navItems = [
 ];
 
 const adminNavItems = [
-    { href: "/users", label: "Người dùng", icon: UserCircle },
+    { href: "/users", label: "Users", icon: UserCircle },
 ];
 
 export function Sidebar() {
@@ -67,7 +67,7 @@ export function Sidebar() {
                 {user?.role === "admin" && (
                     <div className="pt-3">
                         <p className="px-3 pb-1.5 text-[10px] font-semibold text-slate-600 uppercase tracking-widest">
-                            Quản trị
+                            Admin
                         </p>
                         {adminNavItems.map(({ href, label, icon: Icon }) => {
                             const active = pathname === href;
@@ -118,7 +118,7 @@ export function Sidebar() {
                                transition-all duration-200"
                 >
                     <LogOut className="w-4 h-4" />
-                    Đăng xuất
+                    Logout
                 </button>
             </div>
         </aside>

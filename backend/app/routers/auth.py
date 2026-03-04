@@ -110,6 +110,11 @@ class UpdateRoleRequest(BaseModel):
     role: UserRole
 
 
+class EditUserRequest(BaseModel):
+    new_username: Optional[str] = None
+    new_password: Optional[str] = None
+
+
 @router.get("/users", response_model=List[UserListItem])
 async def list_users(current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
@@ -135,6 +140,33 @@ async def update_user_role(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     user.role = body.role
+    await user.save()
+    return UserInfo(username=user.username, role=user.role, is_active=user.is_active)
+
+
+@router.patch("/users/{username}", response_model=UserInfo)
+async def edit_user(
+    username: str,
+    body: EditUserRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
+    
+    user = await get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    if body.new_username and body.new_username != user.username:
+        existing = await get_user_by_username(body.new_username)
+        if existing:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tên đăng nhập đã tồn tại")
+        user.username = body.new_username
+    
+    if body.new_password:
+        from app.services.auth_service import hash_password
+        user.hashed_password = hash_password(body.new_password)
+        
     await user.save()
     return UserInfo(username=user.username, role=user.role, is_active=user.is_active)
 
