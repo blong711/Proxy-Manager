@@ -33,7 +33,7 @@ function AddProviderDialog({ onSuccess }: { onSuccess: () => void }) {
             </DialogTrigger>
             <DialogContent className="bg-[#0d1426] border-white/10 text-slate-100">
                 <DialogHeader><DialogTitle>Add Provider</DialogTitle></DialogHeader>
-                <form onSubmit={e => { e.preventDefault(); mutation.mutate({ name: form.name, api_url: form.api_url || undefined, api_key: form.api_key || undefined }); }} className="space-y-4 mt-2">
+                <form action="#" onSubmit={e => { e.preventDefault(); mutation.mutate({ name: form.name, api_url: form.api_url || undefined, api_key: form.api_key || undefined }); }} className="space-y-4 mt-2">
                     <div><Label className="text-xs text-slate-300">Name *</Label>
                         <Input className="mt-1 bg-white/5 border-white/10" placeholder="Tinsoft" required {...f("name")} /></div>
                     <div><Label className="text-xs text-slate-300">API URL</Label>

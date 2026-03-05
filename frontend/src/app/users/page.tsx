@@ -259,7 +259,7 @@ export default function UsersPage() {
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
-                        <form onSubmit={handleEditSave} className="p-5 space-y-4">
+                        <form action="#" onSubmit={handleEditSave} className="p-5 space-y-4">
                             <div>
                                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Username (Optional)</label>
                                 <input

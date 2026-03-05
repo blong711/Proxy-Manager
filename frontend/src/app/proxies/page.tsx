@@ -130,7 +130,7 @@ function AddProxyDialog({ onSuccess }: { onSuccess: () => void }) {
                 <DialogHeader>
                     <DialogTitle>Add New Proxy</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                <form action="#" onSubmit={handleSubmit} className="space-y-4 mt-2">
                     <div className="grid grid-cols-2 gap-3">
                         <div><Label className="text-slate-300 text-xs">IP Address *</Label>
                             <Input className="mt-1 bg-white/5 border-white/10" placeholder="192.168.1.1" required {...f("ip")} /></div>
@@ -213,7 +213,7 @@ function EditProxyDialog({ proxy, onClose, onSuccess }: { proxy: Proxy | null; o
                 <DialogHeader>
                     <DialogTitle>Edit Proxy</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                <form action="#" onSubmit={handleSubmit} className="space-y-4 mt-2">
                     <div className="grid grid-cols-2 gap-3">
                         <div><Label className="text-slate-300 text-xs">IP Address *</Label>
                             <Input className="mt-1 bg-white/5 border-white/10" placeholder="192.168.1.1" required {...f("ip")} /></div>

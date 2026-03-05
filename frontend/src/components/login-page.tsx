@@ -92,7 +92,7 @@ export default function LoginPage() {
 
                 <div className="rounded-2xl border border-white/8 bg-white/4 backdrop-blur-xl p-8 shadow-2xl">
                     {!showRegister ? (
-                        <form onSubmit={handleLogin} className="space-y-5">
+                        <form action="#" onSubmit={handleLogin} className="space-y-5">
                             <div>
                                 <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Tên đăng nhập</label>
                                 <input type="text" value={username} onChange={(e) => setUsername(e.target.value)}
@@ -123,7 +123,7 @@ export default function LoginPage() {
                             </div>
                         </form>
                     ) : (
-                        <form onSubmit={handleRegister} className="space-y-4">
+                        <form action="#" onSubmit={handleRegister} className="space-y-4">
                             <button type="button" onClick={switchToLogin}
                                 className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors mb-2">
                                 <ArrowLeft className="w-3.5 h-3.5" /> Quay lại đăng nhập

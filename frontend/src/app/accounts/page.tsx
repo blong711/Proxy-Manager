@@ -58,7 +58,7 @@ function AddAccountDialog({ onSuccess, proxies }: { onSuccess: () => void, proxi
             </DialogTrigger>
             <DialogContent className="bg-[#0d1426] border-white/10 text-slate-100">
                 <DialogHeader><DialogTitle>Add Account</DialogTitle></DialogHeader>
-                <form onSubmit={e => {
+                <form action="#" onSubmit={e => {
                     e.preventDefault();
                     const payload = { ...form, proxy_id: form.proxy_id === "none" ? undefined : form.proxy_id };
                     mutation.mutate(payload);
@@ -142,7 +142,7 @@ function EditAccountDialog({ account, onClose, onSuccess, proxies }: { account: 
         <Dialog open={!!account} onOpenChange={(o) => { if (!o) onClose(); }}>
             <DialogContent className="bg-[#0d1426] border-white/10 text-slate-100">
                 <DialogHeader><DialogTitle>Edit Account</DialogTitle></DialogHeader>
-                <form onSubmit={e => {
+                <form action="#" onSubmit={e => {
                     e.preventDefault();
                     const payload = { ...form, proxy_id: form.proxy_id === "none" ? undefined : form.proxy_id };
                     mutation.mutate(payload);
