@@ -9,7 +9,7 @@ from app.models.proxy import Proxy, ProxyStatus, ProxyQuality, ProxyAnonymity
 # Use multiple targets for reliability; fall back if one is down.
 
 CHECK_TARGETS = [
-    {"url": "http://ip-api.com/json/?fields=query,country,countryCode", "parse": "query"},
+    {"url": "http://ip-api.com/json/?fields=query,country,countryCode,regionName,city", "parse": "query"},
     {"url": "http://httpbin.org/ip", "parse": "origin"},
     {"url": "https://api.ipify.org?format=json", "parse": "ip"},
 ]
@@ -41,11 +41,18 @@ async def _try_check(proxy: Proxy, target: dict) -> dict | None:
                         data = {}
                     proxy_ip = data.get(target["parse"], "")
                     country = data.get("country") or data.get("countryCode") or None
+                    region = data.get("regionName") or None
+                    city = data.get("city") or None
+                    # Detect IP version
+                    ip_version = "IPv6" if ":" in proxy_ip else "IPv4" if proxy_ip else None
                     return {
                         "alive": True,
                         "latency": elapsed_ms,
                         "proxy_ip": proxy_ip,
                         "country": country,
+                        "region": region,
+                        "city": city,
+                        "ip_version": ip_version,
                     }
                 return None
 
@@ -130,6 +137,9 @@ async def check_single_proxy(proxy: Proxy, real_ip: str | None = None) -> dict:
             "latency": None,
             "anonymity": None,
             "country": None,
+            "region": None,
+            "city": None,
+            "ip_version": None,
         }
 
     # Success path
@@ -145,6 +155,9 @@ async def check_single_proxy(proxy: Proxy, real_ip: str | None = None) -> dict:
         "latency": latency,
         "anonymity": anonymity,
         "country": country,
+        "region": result.get("region"),
+        "city": result.get("city"),
+        "ip_version": result.get("ip_version"),
     }
 
 

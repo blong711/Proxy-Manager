@@ -196,14 +196,16 @@ async def check_batch_proxies(
             parts = cleaned.split(":")
             if len(parts) != 2:
                 return {"proxy_url": proxy_url, "status": "die", "quality": "bad",
-                        "latency": None, "anonymity": None, "country": None}
+                        "latency": None, "anonymity": None, "country": None,
+                        "region": None, "city": None, "ip_version": None}
 
             ip, port_str = parts
             try:
                 port = int(port_str)
             except ValueError:
                 return {"proxy_url": proxy_url, "status": "die", "quality": "bad",
-                        "latency": None, "anonymity": None, "country": None}
+                        "latency": None, "anonymity": None, "country": None,
+                        "region": None, "city": None, "ip_version": None}
 
             # Detect protocol
             proto_match = re.match(r"^(https?|socks[45])://", proxy_url, re.IGNORECASE)
@@ -230,6 +232,9 @@ async def check_batch_proxies(
                 "latency": result.get("latency"),
                 "anonymity": result["anonymity"].value if result.get("anonymity") else None,
                 "country": result.get("country"),
+                "region": result.get("region"),
+                "city": result.get("city"),
+                "ip_version": result.get("ip_version"),
             }
 
     tasks = [check_one(item) for item in body.proxies]
@@ -242,6 +247,7 @@ async def check_batch_proxies(
                 "proxy_url": body.proxies[i].proxy_url,
                 "status": "die", "quality": "bad",
                 "latency": None, "anonymity": None, "country": None,
+                "region": None, "city": None, "ip_version": None,
             })
         else:
             final_results.append(r)

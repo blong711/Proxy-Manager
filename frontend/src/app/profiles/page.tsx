@@ -40,6 +40,9 @@ interface CheckResult {
     latency: number | null;
     anonymity: string | null;
     country: string | null;
+    region: string | null;
+    city: string | null;
+    ip_version: string | null;
 }
 
 /* ── Parser — auto-detect format ──────────────────────────────────────────── */
@@ -165,7 +168,7 @@ export default function ProfilesPage() {
                 // Fallback: mark all in batch as die
                 batch.forEach((_, batchIdx) => {
                     const idx = i + batchIdx;
-                    setCheckResults(prev => ({ ...prev, [idx]: { status: "die", quality: "bad", latency: null, anonymity: null, country: null } }));
+                    setCheckResults(prev => ({ ...prev, [idx]: { status: "die", quality: "bad", latency: null, anonymity: null, country: null, region: null, city: null, ip_version: null } }));
                 });
             }
             setCheckProgress(prev => ({ ...prev, done: Math.min(prev.done + batch.length, proxies.length) }));
@@ -636,6 +639,9 @@ export default function ProfilesPage() {
                                         <th className="text-left text-xs text-slate-500 font-medium px-4 py-2.5">Quality</th>
                                         <th className="text-left text-xs text-slate-500 font-medium px-4 py-2.5">Latency</th>
                                         <th className="text-left text-xs text-slate-500 font-medium px-4 py-2.5">Country</th>
+                                        <th className="text-left text-xs text-slate-500 font-medium px-4 py-2.5">Region</th>
+                                        <th className="text-left text-xs text-slate-500 font-medium px-4 py-2.5">City</th>
+                                        <th className="text-left text-xs text-slate-500 font-medium px-4 py-2.5">IP Ver</th>
                                         <th className="w-10"></th>
                                     </tr>
                                 </thead>
@@ -707,6 +713,22 @@ export default function ProfilesPage() {
                                                 {/* Country */}
                                                 <td className="px-4 py-2 text-xs text-slate-400">
                                                     {cr?.country || (checking ? "" : "—")}
+                                                </td>
+                                                {/* Region */}
+                                                <td className="px-4 py-2 text-xs text-slate-400">
+                                                    {cr?.region || (checking ? "" : "—")}
+                                                </td>
+                                                {/* City */}
+                                                <td className="px-4 py-2 text-xs text-slate-400">
+                                                    {cr?.city || (checking ? "" : "—")}
+                                                </td>
+                                                {/* IP Version */}
+                                                <td className="px-4 py-2 text-xs">
+                                                    {cr?.ip_version ? (
+                                                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cr.ip_version === "IPv4" ? "bg-blue-500/15 text-blue-400 border-blue-500/30" : "bg-purple-500/15 text-purple-400 border-purple-500/30"}`}>
+                                                            {cr.ip_version}
+                                                        </span>
+                                                    ) : (checking ? "" : <span className="text-slate-600">—</span>)}
                                                 </td>
                                                 <td className="px-4 py-2">
                                                     <button
